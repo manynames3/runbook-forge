@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable
 from pathlib import Path
 from typing import Annotated
@@ -16,18 +17,39 @@ from runbook_forge.analysis.classifier import (
 from runbook_forge.analysis.pattern_memory import PatternMemory
 from runbook_forge.analysis.report_writer import write_report
 from runbook_forge.analysis.skill_generator import generate_skill_from_report
+from runbook_forge.evidence.aws_ecs import Boto3ECSReadOnlyProvider
+from runbook_forge.evidence.aws_sqs_lambda import Boto3SQSLambdaReadOnlyProvider
+from runbook_forge.evidence.github_actions import fetch_actions_run
 from runbook_forge.models import AnalysisReport
 from runbook_forge.safety.audit_log import AuditLogger
+from runbook_forge.safety.redaction import redact_value
 
 app = typer.Typer(help="Runbook Forge: recommend-only CloudOps triage and runbook generation.")
 analyze_app = typer.Typer(help="Analyze fixture-backed CloudOps evidence.")
+collect_app = typer.Typer(help="Collect optional live read-only evidence.")
 app.add_typer(analyze_app, name="analyze")
+app.add_typer(collect_app, name="collect")
 
 InputPath = Annotated[Path, typer.Option("--input", exists=True, readable=True)]
 OutputPath = Annotated[Path, typer.Option("--output")]
 MemoryPath = Annotated[Path, typer.Option("--memory")]
 ReportPath = Annotated[Path, typer.Option("--from-report", exists=True, readable=True)]
 AuditLogPath = Annotated[Path, typer.Option("--audit-log")]
+DiffOutputPath = Annotated[Path | None, typer.Option("--diff-output")]
+AllowLive = Annotated[
+    bool,
+    typer.Option(
+        "--allow-live",
+        help="Required for network or cloud API reads. No write APIs are exposed.",
+    ),
+]
+RepoName = Annotated[str, typer.Option("--repo", help="GitHub repo in owner/name form.")]
+RunId = Annotated[str, typer.Option("--run-id", help="GitHub Actions run id.")]
+ClusterName = Annotated[str, typer.Option("--cluster")]
+ServiceName = Annotated[str, typer.Option("--service")]
+QueueName = Annotated[str, typer.Option("--queue-name")]
+LambdaName = Annotated[str, typer.Option("--lambda-name")]
+RegionName = Annotated[str, typer.Option("--region")]
 DEFAULT_MEMORY = Path(".runbook_forge/patterns.json")
 DEFAULT_AUDIT_LOG = Path(".runbook_forge/audit.log")
 
@@ -69,16 +91,99 @@ def analyze_sqs_lambda(
 def propose_skill(
     from_report: ReportPath,
     output: OutputPath,
+    diff_output: DiffOutputPath = None,
     audit_log: AuditLogPath = DEFAULT_AUDIT_LOG,
 ) -> None:
     """Generate a reusable Markdown runbook skill from a report."""
 
-    generate_skill_from_report(from_report, output)
+    result = generate_skill_from_report(from_report, output, diff_output)
     AuditLogger(audit_log).log_event(
         "skill_proposed",
-        {"from_report": str(from_report), "output": str(output), "mode": "propose_only"},
+        {
+            "from_report": str(from_report),
+            "output": str(output),
+            "diff_output": str(result.diff_path) if result.diff_path else None,
+            "changed": result.changed,
+            "mode": "propose_only",
+        },
     )
     typer.echo(f"Wrote proposed runbook skill to {output}")
+    if result.diff_path:
+        typer.echo(f"Wrote proposed update diff to {result.diff_path}")
+
+
+@collect_app.command("github-actions")
+def collect_github_actions(
+    repo: RepoName,
+    run_id: RunId,
+    output: OutputPath,
+    allow_live: AllowLive = False,
+    audit_log: AuditLogPath = DEFAULT_AUDIT_LOG,
+) -> None:
+    """Collect one GitHub Actions run through the read-only REST API."""
+
+    _require_live(allow_live)
+    payload = fetch_actions_run(repo, run_id)
+    _write_json(output, payload)
+    AuditLogger(audit_log).log_event(
+        "evidence_collected",
+        {"source": "github_actions", "repo": repo, "run_id": run_id, "output": str(output)},
+    )
+    typer.echo(f"Wrote GitHub Actions evidence to {output}")
+
+
+@collect_app.command("ecs-service")
+def collect_ecs_service(
+    cluster: ClusterName,
+    service: ServiceName,
+    region: RegionName,
+    output: OutputPath,
+    allow_live: AllowLive = False,
+    audit_log: AuditLogPath = DEFAULT_AUDIT_LOG,
+) -> None:
+    """Collect an ECS service snapshot through read-only boto3 calls."""
+
+    _require_live(allow_live)
+    payload = Boto3ECSReadOnlyProvider(region).service_snapshot(cluster, service)
+    _write_json(output, payload)
+    AuditLogger(audit_log).log_event(
+        "evidence_collected",
+        {
+            "source": "aws_ecs",
+            "cluster": cluster,
+            "service": service,
+            "region": region,
+            "output": str(output),
+        },
+    )
+    typer.echo(f"Wrote ECS service evidence to {output}")
+
+
+@collect_app.command("sqs-lambda")
+def collect_sqs_lambda(
+    queue_name: QueueName,
+    lambda_name: LambdaName,
+    region: RegionName,
+    output: OutputPath,
+    allow_live: AllowLive = False,
+    audit_log: AuditLogPath = DEFAULT_AUDIT_LOG,
+) -> None:
+    """Collect SQS queue and Lambda configuration through read-only boto3 calls."""
+
+    _require_live(allow_live)
+    payload = Boto3SQSLambdaReadOnlyProvider(region).backlog_snapshot(queue_name, lambda_name)
+    _write_json(output, payload)
+    AuditLogger(audit_log).log_event(
+        "evidence_collected",
+        {
+            "source": "aws_sqs_lambda",
+            "queue_name": queue_name,
+            "lambda_name": lambda_name,
+            "region": region,
+            "output": str(output),
+        },
+    )
+    typer.echo(f"Wrote SQS/Lambda evidence to {output}")
 
 
 @app.command()
@@ -159,6 +264,22 @@ def _run_analysis(
     )
     typer.echo(f"Wrote {report.report_type} report to {output_path}")
     return report
+
+
+def _write_json(output_path: Path, payload: dict[str, object]) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(
+        json.dumps(redact_value(payload), indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
+def _require_live(allow_live: bool) -> None:
+    if not allow_live:
+        raise typer.BadParameter(
+            "Live collection is opt-in. Re-run with --allow-live after confirming "
+            "the command is read-only."
+        )
 
 
 def _project_root() -> Path:

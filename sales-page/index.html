@@ -9,6 +9,7 @@
       content="Runbook Forge turns repeated DevOps failure patterns into reusable SRE runbook skills with recommend-only safety gates."
     />
     <link rel="stylesheet" href="./styles.css" />
+    <script src="./app.js" defer></script>
   </head>
   <body>
     <header class="site-header">
@@ -19,6 +20,7 @@
       <nav class="nav-links" aria-label="Primary navigation">
         <a href="#workflow">Workflow</a>
         <a href="#coverage">Coverage</a>
+        <a href="#explorer">Explorer</a>
         <a href="#safety">Safety</a>
         <a href="#demo">Demo</a>
       </nav>
@@ -205,6 +207,68 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 pytest
 runbook-forge demo</code></pre>
+      </section>
+
+      <section class="explorer" id="explorer">
+        <div class="section-copy">
+          <h2>Explore generated reports before installing.</h2>
+          <p>
+            This static demo mirrors the Markdown reports committed in the repository. It helps
+            reviewers see the product output without AWS credentials, a database, or a paid backend.
+          </p>
+        </div>
+        <div class="explorer-shell">
+          <div class="explorer-tabs" role="tablist" aria-label="Sample reports">
+            <button class="explorer-tab" type="button" data-report="ecs" aria-selected="true">
+              ECS deploy
+            </button>
+            <button class="explorer-tab" type="button" data-report="terraform" aria-selected="false">
+              Terraform
+            </button>
+            <button class="explorer-tab" type="button" data-report="sqs" aria-selected="false">
+              SQS/Lambda
+            </button>
+          </div>
+          <div class="explorer-grid">
+            <article class="explorer-summary">
+              <span id="explorer-type">ecs-deploy</span>
+              <h3 id="explorer-title">ECS deployment failure triage</h3>
+              <p id="explorer-summary">
+                ECS deployment for checkout-api is not stable. Most likely cause: health check
+                failure.
+              </p>
+              <dl>
+                <div>
+                  <dt>Severity</dt>
+                  <dd id="explorer-severity">high</dd>
+                </div>
+                <div>
+                  <dt>Affected system</dt>
+                  <dd id="explorer-system">prod-shared/checkout-api</dd>
+                </div>
+                <div>
+                  <dt>Pattern count</dt>
+                  <dd id="explorer-count">2</dd>
+                </div>
+              </dl>
+            </article>
+            <article class="explorer-detail">
+              <h3>Evidence and next action</h3>
+              <ul id="explorer-evidence">
+                <li>ECS events failed target health checks</li>
+                <li>Target group returned HTTP 503</li>
+                <li>Task exited after startup dependency check</li>
+              </ul>
+              <div class="command-card">
+                <span>Proposed, not executed</span>
+                <code id="explorer-command">
+                  aws ecs update-service --cluster prod-shared --service checkout-api
+                  --task-definition &lt;previous-task-def&gt;
+                </code>
+              </div>
+            </article>
+          </div>
+        </div>
       </section>
 
       <section class="sample-report" id="sample-report">

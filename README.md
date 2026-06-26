@@ -20,12 +20,14 @@ The CLI analyzes evidence, writes Markdown reports, tracks deterministic inciden
 - Human approval gates on every infrastructure-changing action.
 - Fixture-driven demos and tests that require no AWS credentials.
 - Hermes integration folder with portable skill definitions and adaptation notes.
+- Static sales/demo page that can be hosted on Cloudflare Pages with no paid backend.
 
 ## Architecture
 
 ```mermaid
 flowchart TD
     A["Evidence fixtures"] --> B["Evidence loaders"]
+    N["Optional live read-only collectors"] --> B
     B --> C["Classifiers"]
     C --> D["Typed analysis report"]
     D --> E["Markdown report writer"]
@@ -80,6 +82,15 @@ The demo writes:
 
 The demo intentionally replays the ECS fixture once so recurrence detection proposes a reusable ECS runbook skill.
 
+## One-command Docker demo
+
+```bash
+docker compose up --build
+```
+
+The container runs `runbook-forge demo` and writes reports, runbooks, pattern memory, and audit
+metadata back into the local project directories through bind mounts.
+
 ## Individual commands
 
 ```bash
@@ -99,6 +110,63 @@ runbook-forge propose-skill \
   --from-report reports/ecs-triage.md \
   --output runbooks/ecs_deploy_failure_triage.md
 ```
+
+If the output runbook already exists, `propose-skill` writes an adjacent unified diff such as
+`runbooks/ecs_deploy_failure_triage.md.diff` so reviewers can see what changed before adopting the
+new skill draft.
+
+## Optional live read-only collection
+
+Live collection is opt-in and blocked unless `--allow-live` is present. The default demo and tests
+remain fixture-only and make no network calls.
+
+```bash
+# GitHub Actions read-only REST API. Uses GITHUB_TOKEN or GH_TOKEN when set.
+runbook-forge collect github-actions \
+  --allow-live \
+  --repo owner/repo \
+  --run-id 123456789 \
+  --output fixtures/github_actions/run_123456789.json
+
+# AWS read-only collection requires the optional boto3 extra and normal read-only AWS credentials.
+pip install -e ".[aws]"
+
+runbook-forge collect ecs-service \
+  --allow-live \
+  --cluster prod-shared \
+  --service checkout-api \
+  --region us-east-1 \
+  --output fixtures/aws/ecs_live_snapshot.json
+
+runbook-forge collect sqs-lambda \
+  --allow-live \
+  --queue-name payments-events \
+  --lambda-name payments-event-worker \
+  --region us-east-1 \
+  --output fixtures/aws/sqs_lambda_live_snapshot.json
+```
+
+These commands only expose read APIs. They still redact secret-shaped values before writing files.
+
+## Static demo and Cloudflare Pages
+
+The `sales-page/` directory contains a static product page with an interactive report explorer. It
+requires no server-side runtime, database, Workers, queues, object storage, or scheduled jobs.
+
+```bash
+python -m http.server 4173 --directory sales-page
+npx wrangler pages deploy sales-page --project-name runbook-forge
+```
+
+GitHub Actions deployment is included in `.github/workflows/deploy-cloudflare-pages.yml`. It requires
+repository secrets:
+
+- `CLOUDFLARE_API_TOKEN`
+- `CLOUDFLARE_ACCOUNT_ID`
+
+Cost profile: expected idle cost is `$0` on Cloudflare Pages free-tier behavior for this static site.
+Minimal usage should stay below the requested `$10/month` cap because no paid Cloudflare products are
+configured.
 
 ## Example report output
 
@@ -145,14 +213,15 @@ Included Hermes-style skills:
 - `integrations/hermes/skills/ecs_deploy_failure_triage.md`
 - `integrations/hermes/skills/sqs_lambda_backlog_triage.md`
 
-## Screenshots placeholder
+## Screenshots
 
-Add screenshots after running the demo locally:
+Sales/demo page:
 
-- Terminal output from `runbook-forge demo`.
-- Generated Terraform review report.
-- Generated ECS triage report with recurrence metadata.
-- Generated runbook skill draft.
+![Runbook Forge sales page](docs/screenshots/sales-page-desktop.png)
+
+Interactive report explorer:
+
+![Runbook Forge report explorer](docs/screenshots/demo-explorer.png)
 
 ## What this demonstrates for DevOps roles
 
@@ -173,11 +242,11 @@ Add screenshots after running the demo locally:
 
 ## Future improvements
 
-- Add real read-only AWS collection commands behind explicit configuration.
 - Add GitHub issue or pull request draft generation.
 - Add policy-as-code export for Terraform findings.
 - Add richer repository documentation retrieval.
 - Add report snapshots or dashboard rendering for incident trends.
+- Add deeper CloudWatch metric collection for live SQS/Lambda diagnosis.
 
 ## Assumptions
 

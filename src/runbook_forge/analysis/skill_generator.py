@@ -3,17 +3,32 @@
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
+from difflib import unified_diff
 from pathlib import Path
 
 from runbook_forge.safety.redaction import redact_text
 
 
-def generate_skill_from_report(report_path: Path, output_path: Path) -> None:
+@dataclass(frozen=True)
+class SkillWriteResult:
+    output_path: Path
+    changed: bool
+    diff_path: Path | None = None
+
+
+def generate_skill_from_report(
+    report_path: Path, output_path: Path, diff_path: Path | None = None
+) -> SkillWriteResult:
     report_text = report_path.read_text(encoding="utf-8")
     fields = _extract_report_fields(report_text)
     body = render_skill(fields)
+    previous = output_path.read_text(encoding="utf-8") if output_path.exists() else None
+    changed = previous != body
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(redact_text(body), encoding="utf-8")
+    written_diff_path = _write_diff(previous, body, output_path, diff_path)
+    return SkillWriteResult(output_path=output_path, changed=changed, diff_path=written_diff_path)
 
 
 def render_skill(fields: dict[str, str]) -> str:
@@ -123,3 +138,20 @@ def _section_value(report_text: str, heading: str) -> str:
 def _slug_to_title(value: str) -> str:
     words = re.sub(r"[^a-zA-Z0-9]+", " ", value).strip().split()
     return " ".join(word.capitalize() for word in words) + " Skill"
+
+
+def _write_diff(
+    previous: str | None, current: str, output_path: Path, diff_path: Path | None
+) -> Path | None:
+    if previous is None or previous == current:
+        return None
+    target = diff_path or output_path.with_suffix(output_path.suffix + ".diff")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    diff = unified_diff(
+        previous.splitlines(keepends=True),
+        current.splitlines(keepends=True),
+        fromfile=f"{output_path.name}:previous",
+        tofile=f"{output_path.name}:proposed",
+    )
+    target.write_text("".join(diff), encoding="utf-8")
+    return target

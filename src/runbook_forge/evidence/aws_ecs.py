@@ -26,7 +26,7 @@ class FixtureECSProvider:
 
 
 class Boto3ECSReadOnlyProvider:
-    """Small adapter for future live read-only checks. Not used by tests or demo."""
+    """Read-only ECS adapter. Not used by tests or demo."""
 
     def __init__(self, region_name: str) -> None:
         import boto3  # type: ignore[import-not-found]
@@ -35,9 +35,37 @@ class Boto3ECSReadOnlyProvider:
 
     def service_snapshot(self, cluster: str, service: str) -> dict[str, Any]:
         response = self._ecs.describe_services(cluster=cluster, services=[service])
-        return redact_value(response)
+        return redact_value(_normalize_service_response(response, cluster, service))
 
 
 def load_ecs_fixture(path: Path) -> dict[str, Any]:
     return redact_value(json.loads(path.read_text(encoding="utf-8")))
 
+
+def _normalize_service_response(
+    response: dict[str, Any], cluster: str, service_name: str
+) -> dict[str, Any]:
+    services = response.get("services", [])
+    service = services[0] if isinstance(services, list) and services else {}
+    if not isinstance(service, dict):
+        service = {}
+    events = service.get("events", [])
+    if not isinstance(events, list):
+        events = []
+    return {
+        "cluster": cluster,
+        "service": service_name,
+        "desired_count": service.get("desiredCount"),
+        "running_count": service.get("runningCount"),
+        "pending_count": service.get("pendingCount"),
+        "task_definition": service.get("taskDefinition"),
+        "deployment_controller": service.get("deploymentController"),
+        "ecs_service_events": [
+            str(event.get("message", ""))
+            for event in events[:10]
+            if isinstance(event, dict) and event.get("message")
+        ],
+        "target_group_health": [],
+        "tasks": [],
+        "container_logs": [],
+    }

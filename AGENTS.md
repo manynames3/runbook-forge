@@ -22,6 +22,12 @@ pytest
 runbook-forge demo
 ```
 
+Optional Docker smoke test when Docker is installed:
+
+```bash
+docker compose up --build
+```
+
 ## Code style
 
 - Use Python 3.11+ type hints.
@@ -29,6 +35,7 @@ runbook-forge demo
 - Prefer Pydantic models for structured report data.
 - Keep CLI behavior deterministic and fixture-friendly.
 - Avoid network calls in tests.
+- Keep hosted demo changes static unless the user explicitly accepts recurring cost.
 
 ## Cloud action policy
 

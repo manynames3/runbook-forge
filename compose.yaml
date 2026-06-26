@@ -1,0 +1,8 @@
+services:
+  demo:
+    build: .
+    command: runbook-forge demo
+    volumes:
+      - ./reports:/workspace/reports
+      - ./runbooks:/workspace/runbooks
+      - ./.runbook_forge:/workspace/.runbook_forge

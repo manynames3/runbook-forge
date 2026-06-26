@@ -44,9 +44,46 @@ class Boto3SQSLambdaReadOnlyProvider:
             ],
         )
         function = self._lambda.get_function_configuration(FunctionName=lambda_name)
-        return redact_value({"queue_attributes": attrs, "lambda_configuration": function})
+        return redact_value(_normalize_backlog_response(queue_name, lambda_name, attrs, function))
 
 
 def load_sqs_lambda_fixture(path: Path) -> dict[str, Any]:
     return redact_value(json.loads(path.read_text(encoding="utf-8")))
 
+
+def _normalize_backlog_response(
+    queue_name: str,
+    lambda_name: str,
+    queue_attributes: dict[str, Any],
+    lambda_configuration: dict[str, Any],
+) -> dict[str, Any]:
+    attrs = queue_attributes.get("Attributes", {})
+    if not isinstance(attrs, dict):
+        attrs = {}
+    timeout_seconds = _int(lambda_configuration.get("Timeout"))
+    return {
+        "queue_name": queue_name,
+        "lambda_name": lambda_name,
+        "queue_depth": _int(attrs.get("ApproximateNumberOfMessages")),
+        "oldest_message_age_seconds": _int(attrs.get("ApproximateAgeOfOldestMessage")),
+        "dlq_message_count": 0,
+        "lambda": {
+            "errors_5m": 0,
+            "throttles_5m": 0,
+            "timeouts_5m": 0,
+            "duration_p95_ms": 0,
+            "timeout_ms": timeout_seconds * 1000,
+            "reserved_concurrency": 0,
+            "concurrent_executions": 0,
+            "batch_size": 0,
+        },
+        "logs": [],
+    }
+
+
+def _int(value: Any) -> int:
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str) and value.isdigit():
+        return int(value)
+    return 0

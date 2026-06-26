@@ -74,3 +74,24 @@ Related skill: `ecs_deploy_failure_triage`.
     assert result.exit_code == 0, result.output
     assert output.exists()
     assert "Ecs Deploy Failure Triage Skill" in output.read_text(encoding="utf-8")
+
+
+def test_cli_collect_requires_live_opt_in(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    runner = CliRunner()
+
+    result = runner.invoke(
+        app,
+        [
+            "collect",
+            "github-actions",
+            "--repo",
+            "manynames3/runbook-forge",
+            "--run-id",
+            "1",
+            "--output",
+            str(tmp_path / "actions.json"),
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "Live collection is opt-in" in result.output
