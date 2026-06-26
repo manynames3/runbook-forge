@@ -1,0 +1,54 @@
+{
+  "account_id": "123456789012",
+  "region": "us-east-1",
+  "cluster": "prod-shared",
+  "service": "checkout-api",
+  "task_definition_image": "123456789012.dkr.ecr.us-east-1.amazonaws.com/checkout-api:2026-06-26.1",
+  "github_actions": {
+    "workflow": "deploy.yml",
+    "run_id": "884221",
+    "commit_sha": "f00dbabe1234",
+    "status": "failure",
+    "failed_step": "wait-for-service-stability",
+    "image": "123456789012.dkr.ecr.us-east-1.amazonaws.com/checkout-api:2026-06-26.1",
+    "failure_message": "ECS service did not reach steady state within 15 minutes."
+  },
+  "ecs_service_events": [
+    "service checkout-api has started 2 tasks: task 123 and task 456.",
+    "service checkout-api (deployment ecs-svc/7132680192509192041) was unable to reach steady state.",
+    "service checkout-api deregistered 2 targets in target-group checkout-blue because they failed ELB health checks."
+  ],
+  "target_group_health": [
+    {
+      "target": "10.0.42.19:8080",
+      "status": "unhealthy",
+      "reason": "Health checks failed with code 503",
+      "path": "/health"
+    },
+    {
+      "target": "10.0.43.87:8080",
+      "status": "unhealthy",
+      "reason": "Health checks failed with code 503",
+      "path": "/health"
+    }
+  ],
+  "tasks": [
+    {
+      "task_arn": "arn:aws:ecs:us-east-1:123456789012:task/prod-shared/123",
+      "last_status": "STOPPED",
+      "stopped_reason": "Essential container in task exited",
+      "containers": [
+        {
+          "name": "app",
+          "exit_code": 1,
+          "reason": "Application returned non-zero exit code after health check failures"
+        }
+      ]
+    }
+  ],
+  "container_logs": [
+    "2026-06-26T06:10:11Z INFO starting checkout-api on port 9000",
+    "2026-06-26T06:10:14Z WARN /health returned 503 because database migration status is pending",
+    "2026-06-26T06:10:18Z ERROR exited after failing startup dependency check"
+  ]
+}

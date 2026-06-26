@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Runbook Forge - Self-Improving CloudOps Runbooks</title>
+    <meta
+      name="description"
+      content="Runbook Forge turns repeated DevOps failure patterns into reusable SRE runbook skills with recommend-only safety gates."
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="Runbook Forge home">
+        <span class="brand-mark" aria-hidden="true">RF</span>
+        <span>Runbook Forge</span>
+      </a>
+      <nav class="nav-links" aria-label="Primary navigation">
+        <a href="#workflow">Workflow</a>
+        <a href="#coverage">Coverage</a>
+        <a href="#safety">Safety</a>
+        <a href="#demo">Demo</a>
+      </nav>
+      <a class="header-cta" href="https://github.com/manynames3/runbook-forge">GitHub</a>
+    </header>
+
+    <main id="top">
+      <section class="hero">
+        <div class="hero-copy">
+          <h1>Runbook Forge turns repeat incidents into reusable SRE procedures.</h1>
+          <p>
+            A Hermes-compatible CloudOps agent that reads Terraform plans, deployment evidence,
+            AWS-shaped signals, logs, and repo docs, then produces triage reports, approval gates,
+            and reusable runbook skills.
+          </p>
+          <div class="hero-actions" aria-label="Primary actions">
+            <a class="button button-primary" href="https://github.com/manynames3/runbook-forge">
+              View on GitHub
+            </a>
+            <a class="button button-secondary" href="#sample-report">Read sample report</a>
+          </div>
+          <dl class="hero-proof">
+            <div>
+              <dt>3</dt>
+              <dd>triage modes</dd>
+            </div>
+            <div>
+              <dt>0</dt>
+              <dd>cloud writes by default</dd>
+            </div>
+            <div>
+              <dt>9</dt>
+              <dd>tests passing</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div class="product-frame" aria-label="Runbook Forge report preview">
+          <div class="frame-toolbar">
+            <span></span>
+            <span></span>
+            <span></span>
+            <strong>reports/ecs-triage.md</strong>
+          </div>
+          <div class="report-preview">
+            <div class="report-row">
+              <span>Severity</span>
+              <strong class="severity-high">high</strong>
+            </div>
+            <div class="report-row">
+              <span>Affected system</span>
+              <strong>prod-shared/checkout-api</strong>
+            </div>
+            <div class="report-block">
+              <span>Likely root cause</span>
+              <p>health check failure</p>
+            </div>
+            <div class="report-block evidence">
+              <span>Evidence reviewed</span>
+              <ul>
+                <li>ECS events failed target health checks</li>
+                <li>Target group returned HTTP 503</li>
+                <li>Task exited after startup dependency check</li>
+              </ul>
+            </div>
+            <div class="approval-line">
+              <span class="approval-dot"></span>
+              Human approval required before ECS service updates
+            </div>
+            <code>ecs-deploy::health-check-failure::prod-shared-checkout-api</code>
+          </div>
+        </div>
+      </section>
+
+      <section class="workflow" id="workflow">
+        <div class="section-copy">
+          <h2>From noisy incident evidence to procedural memory.</h2>
+          <p>
+            Runbook Forge makes operational learning concrete. It classifies evidence, writes a
+            reviewable report, records the fingerprint, and proposes a reusable skill only after a
+            pattern repeats.
+          </p>
+        </div>
+        <div class="flow-grid">
+          <article>
+            <span>01</span>
+            <h3>Ingest evidence</h3>
+            <p>Terraform plan JSON, fake AWS fixtures, CI failure metadata, logs, and repo docs.</p>
+          </article>
+          <article>
+            <span>02</span>
+            <h3>Classify risk</h3>
+            <p>Root-cause classifiers produce severity, blast radius, and recommended checks.</p>
+          </article>
+          <article>
+            <span>03</span>
+            <h3>Track recurrence</h3>
+            <p>Deterministic fingerprints turn repeated incidents into pattern memory.</p>
+          </article>
+          <article>
+            <span>04</span>
+            <h3>Propose skills</h3>
+            <p>Runbook drafts capture investigation steps, safe commands, approvals, and rollback.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="coverage" id="coverage">
+        <div class="section-copy">
+          <h2>Built for the failure modes CloudOps teams actually review.</h2>
+          <p>
+            The project is fixture-backed and deterministic, so reviewers can run it locally without
+            cloud credentials or network calls.
+          </p>
+        </div>
+        <div class="coverage-list">
+          <article>
+            <div class="mode-icon terraform">TF</div>
+            <div>
+              <h3>Terraform plan review</h3>
+              <p>
+                Detects public S3 exposure, world-open security groups, wildcard IAM, destructive
+                RDS changes, and NAT Gateway cost risk.
+              </p>
+            </div>
+          </article>
+          <article>
+            <div class="mode-icon ecs">EC</div>
+            <div>
+              <h3>ECS deployment triage</h3>
+              <p>
+                Correlates CI output, service events, target health, stopped tasks, and container
+                logs to classify deployment failures.
+              </p>
+            </div>
+          </article>
+          <article>
+            <div class="mode-icon lambda">SQ</div>
+            <div>
+              <h3>SQS/Lambda backlog triage</h3>
+              <p>
+                Flags throttling, timeout pressure, poison messages, batch mismatch, DLQ growth, and
+                downstream dependency errors.
+              </p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="safety" id="safety">
+        <div>
+          <h2>Recommendation-first automation with hard safety boundaries.</h2>
+          <p>
+            Runbook Forge is deliberately not an auto-remediator. It generates proposed commands,
+            report text, and approval checklists, while write actions stay blocked behind humans.
+          </p>
+        </div>
+        <div class="safety-panel">
+          <div class="safety-row">
+            <span class="status read">read_only</span>
+            <p>Safe evidence inspection and fixture parsing.</p>
+          </div>
+          <div class="safety-row">
+            <span class="status propose">propose_only</span>
+            <p>Rollback, scaling, and Terraform commands rendered as text.</p>
+          </div>
+          <div class="safety-row">
+            <span class="status approval">requires_human_approval</span>
+            <p>No infrastructure-changing action runs without explicit approval.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="demo" id="demo">
+        <div class="section-copy">
+          <h2>Run the product locally in minutes.</h2>
+          <p>
+            The CLI creates reports, pattern memory, an audit log, and a proposed ECS runbook skill
+            from fake demo evidence.
+          </p>
+        </div>
+        <pre><code>python -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+pytest
+runbook-forge demo</code></pre>
+      </section>
+
+      <section class="sample-report" id="sample-report">
+        <div class="sample-copy">
+          <h2>Sample report excerpt</h2>
+          <p>
+            ECS deployment for checkout-api is not stable. Most likely cause:
+            <strong>health check failure</strong>.
+          </p>
+        </div>
+        <div class="report-card">
+          <div>
+            <span>Pattern seen count</span>
+            <strong>2</strong>
+          </div>
+          <div>
+            <span>Proposed skill due to recurrence</span>
+            <strong>true</strong>
+          </div>
+          <div>
+            <span>Generated skill</span>
+            <strong>ecs_deploy_failure_triage.md</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="final-cta">
+        <h2>Review the code, reports, and runbook generator.</h2>
+        <p>
+          Runbook Forge demonstrates typed CloudOps analysis, procedural memory, safety controls,
+          testable fixtures, and Hermes-adaptable runbook skills.
+        </p>
+        <a class="button button-primary" href="https://github.com/manynames3/runbook-forge">
+          View on GitHub
+        </a>
+      </section>
+    </main>
+
+    <footer>
+      <span>Runbook Forge</span>
+      <a href="https://github.com/manynames3/runbook-forge">Working product repository</a>
+    </footer>
+  </body>
+</html>

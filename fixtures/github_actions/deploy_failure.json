@@ -1,0 +1,8 @@
+{
+  "workflow": "deploy.yml",
+  "run_id": "884221",
+  "commit_sha": "f00dbabe1234",
+  "status": "failure",
+  "failed_step": "wait-for-service-stability",
+  "summary": "ECS service did not reach steady state within 15 minutes."
+}

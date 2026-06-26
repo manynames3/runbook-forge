@@ -1,0 +1,103 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.8.5",
+  "resource_changes": [
+    {
+      "address": "aws_s3_bucket_public_access_block.assets",
+      "mode": "managed",
+      "type": "aws_s3_bucket_public_access_block",
+      "name": "assets",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "bucket": "rf-demo-public-assets",
+          "block_public_acls": false,
+          "block_public_policy": false,
+          "ignore_public_acls": false,
+          "restrict_public_buckets": false
+        }
+      }
+    },
+    {
+      "address": "aws_s3_bucket_policy.assets",
+      "mode": "managed",
+      "type": "aws_s3_bucket_policy",
+      "name": "assets",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "bucket": "rf-demo-public-assets",
+          "policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":\"*\",\"Action\":[\"s3:GetObject\"],\"Resource\":\"arn:aws:s3:::rf-demo-public-assets/*\"}]}"
+        }
+      }
+    },
+    {
+      "address": "aws_security_group_rule.web_ssh",
+      "mode": "managed",
+      "type": "aws_security_group_rule",
+      "name": "web_ssh",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "type": "ingress",
+          "from_port": 22,
+          "to_port": 22,
+          "protocol": "tcp",
+          "cidr_blocks": ["0.0.0.0/0"],
+          "security_group_id": "sg-0123456789abcdef0"
+        }
+      }
+    },
+    {
+      "address": "aws_iam_policy.worker",
+      "mode": "managed",
+      "type": "aws_iam_policy",
+      "name": "worker",
+      "change": {
+        "actions": ["update"],
+        "before": {
+          "name": "runbook-forge-worker"
+        },
+        "after": {
+          "name": "runbook-forge-worker",
+          "policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":[\"s3:*\",\"iam:PassRole\"],\"Resource\":\"*\"}]}"
+        }
+      }
+    },
+    {
+      "address": "aws_db_instance.orders",
+      "mode": "managed",
+      "type": "aws_db_instance",
+      "name": "orders",
+      "change": {
+        "actions": ["delete", "create"],
+        "before": {
+          "identifier": "orders-prod",
+          "engine": "postgres"
+        },
+        "after": {
+          "identifier": "orders-prod",
+          "engine": "postgres",
+          "instance_class": "db.r6g.large"
+        }
+      }
+    },
+    {
+      "address": "aws_nat_gateway.main",
+      "mode": "managed",
+      "type": "aws_nat_gateway",
+      "name": "main",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "subnet_id": "subnet-0123456789abcdef0",
+          "allocation_id": "eipalloc-0123456789abcdef0"
+        }
+      }
+    }
+  ]
+}

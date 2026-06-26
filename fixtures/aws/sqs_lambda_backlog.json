@@ -1,0 +1,24 @@
+{
+  "account_id": "123456789012",
+  "region": "us-east-1",
+  "queue_name": "payments-events",
+  "lambda_name": "payments-event-worker",
+  "queue_depth": 18234,
+  "oldest_message_age_seconds": 6120,
+  "dlq_message_count": 143,
+  "lambda": {
+    "errors_5m": 64,
+    "throttles_5m": 28,
+    "timeouts_5m": 11,
+    "duration_p95_ms": 28600,
+    "timeout_ms": 30000,
+    "reserved_concurrency": 5,
+    "concurrent_executions": 5,
+    "batch_size": 10
+  },
+  "logs": [
+    "2026-06-26T06:18:01Z ERROR Task timed out after 30.00 seconds",
+    "2026-06-26T06:18:03Z WARN downstream ledger dependency returned HTTP 503",
+    "2026-06-26T06:18:05Z ERROR message moved to DLQ after maxReceiveCount"
+  ]
+}
